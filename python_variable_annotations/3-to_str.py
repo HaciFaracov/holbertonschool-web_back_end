@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-"""Module that provides a floor function."""
-
-import math
+"""Module that provides a to_str function."""
 
 
-def floor(n: float) -> int:
-    """Returns the floor of the float n."""
-    return math.floor(n)
+def to_str(n: float) -> str:
+    """Returns the string representation of the float n."""
+    return str(n)
