@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """
-Simple pagination module.
+Module for simple pagination of a database of popular baby names.
 """
 
 import csv
 import math
 from typing import List
-
-index_range = __import__('0-simple_helper_function').index_range
 
 
 class Server:
@@ -16,21 +14,18 @@ class Server:
     """
     DATA_FILE = "Popular_Baby_Names.csv"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
-        Initializes a new instance of the Server class.
+        Initializes a new instance of the Server class with an empty dataset.
         """
         self.__dataset = None
 
     def dataset(self) -> List[List]:
         """
         Retrieves and caches the dataset from the CSV file.
-
-        Returns:
-            List[List]: The list of rows from the CSV file, excluding the header.
         """
         if self.__dataset is None:
-            with open(self.DATA_FILE, encoding='utf-8') as f:
+            with open(self.DATA_FILE) as f:
                 reader = csv.reader(f)
                 dataset = [row for row in reader]
             self.__dataset = dataset[1:]
@@ -39,18 +34,12 @@ class Server:
 
     def get_page(self, page: int = 1, page_size: int = 10) -> List[List]:
         """
-        Retrieves the specified page from the dataset.
-
-        Args:
-            page (int): The current page number (1-indexed).
-            page_size (int): The number of items per page.
-
-        Returns:
-            List[List]: A list of rows corresponding to the pagination parameters.
+        Returns a specific page of the dataset based on the pagination parameters.
         """
         assert isinstance(page, int) and page > 0
         assert isinstance(page_size, int) and page_size > 0
 
+        index_range = __import__('0-simple_helper_function').index_range
         start_index, end_index = index_range(page, page_size)
         data = self.dataset()
 
@@ -58,3 +47,4 @@ class Server:
             return []
 
         return data[start_index:end_index]
+        
