@@ -1,2 +1,2 @@
 //acommnt
-db.insert({"name : "Holberton School"})
+db.insert({"name" : "Holberton School"})
