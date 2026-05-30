@@ -1,83 +1,58 @@
+// 5 Create a more complex HTTP server using Node's HTTP module
+
+// In a file named 5-http.js, create a small HTTP server using the http module:
+// It should be assigned to the variable app and this one must be exported
+// HTTP server should listen on port 1245
+// It should return plain text
+// When the URL path is /, it should display Hello Holberton School! in the page body
+// When the URL path is /students, it should display This is the list of our students
+// followed by the same content as the file 3-read_file_async.js (with and without the database)
+// the name of the database must be passed as argument of the file
+// CSV file can contain empty lines (at the end) - and they are not a valid student!
+
 const http = require('http');
-const fs = require('fs');
+const countStudents = require('./3-read_file_async');
 
-const PORT = 1245;
-const DB_FILE = process.argv[2];
+const port = 1245;
 
-/**
- * Asynchronously processes the CSV database file and returns 
- * the formatted student statistics as a string.
- * @param {string} path - The path to the CSV file.
- * @returns {Promise<string>}
- */
-function countStudents(path) {
-  return new Promise((resolve, reject) => {
-    fs.readFile(path, 'utf-8', (error, data) => {
-      if (error) {
-        reject(new Error('Cannot load the database'));
-        return;
-      }
+const app = http
+  .createServer(async (req, res) => {
+    if (req.url === '/') {
+      res.end('Hello Holberton School!');
+    } else if (req.url === '/students') {
+      res.write('This is the list of our students\n');
 
-      const lines = data.split('\n').filter((line) => line.trim() !== '');
-      const header = lines.shift();
-      if (!header) {
-        resolve('Number of students: 0');
-        return;
-      }
+      await countStudents(process.argv[2])
+        .then((data) => {
+          const fields = Object.keys(data);
 
-      const fields = {};
-      let totalStudents = 0;
+          const total = fields.reduce(
+            (acc, curr) => acc + data[curr].numStudents,
+            0,
+          );
 
-      for (const line of lines) {
-        const studentData = line.split(',');
-        if (studentData.length >= 4) {
-          const firstName = studentData[0].trim();
-          const field = studentData[3].trim();
+          res.write(`Number of students: ${total}\n`);
 
-          if (!fields[field]) {
-            fields[field] = [];
+          for (let i = 0; i < fields.length; i += 1) {
+            res.write(
+              `Number of students in ${fields[i]}: ${
+                data[fields[i]].numStudents
+              }. `,
+            );
+            res.write(`List: ${data[fields[i]].names.join(', ')}`);
+
+            if (i < fields.length - 1) {
+              res.write('\n');
+            }
           }
-          fields[field].push(firstName);
-          totalStudents += 1;
-        }
-      }
-
-      // Compile the final string output instead of console.logging directly
-      let output = `Number of students: ${totalStudents}`;
-      
-      const sortedFields = Object.keys(fields);
-      for (const field of sortedFields) {
-        output += `\nNumber of students in ${field}: ${fields[field].length}. List: ${fields[field].join(', ')}`;
-      }
-
-      resolve(output);
-    });
-  });
-}
-
-// Create the HTTP server routing system
-const app = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-
-  if (req.url === '/') {
-    res.end('Hello Holberton School!');
-  } else if (req.url === '/students') {
-    res.write('This is the list of our students\n');
-    
-    // Call our promise-based file parser
-    countStudents(DB_FILE)
-      .then((data) => {
-        res.end(data);
-      })
-      .catch((err) => {
-        res.end(err.message);
-      });
-  } else {
-    res.end('Not Found');
-  }
-});
-
-// Start the server
-app.listen(PORT);
+        })
+        .catch((err) => {
+          res.write(err.message);
+        })
+        .finally(() => {
+          res.end();
+        });
+    }
+  }).listen(port);
 
 module.exports = app;
