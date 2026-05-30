@@ -1,79 +1,51 @@
+// recreate the small HTTP server using Express
+// HTTP server should listen on port 1245
+// It should return plain text
+// When the URL path is /, it should display Hello Holberton School!
+// When the URL path is /students, it should display This is the list of our students
+// followed by the same content as the file 3-read_file_async.js (with and without the database)
+// the name of the database must be passed as argument of the file
+// CSV file can contain empty lines (at the end) - and they are not a valid student!
+
 const express = require('express');
-const fs = require('fs');
+const countStudents = require('./3-read_file_async.js');
 
 const app = express();
-const PORT = 1245;
-const DB_FILE = process.argv[2];
+const port = 1245;
 
-/**
- * Asynchronously processes the CSV database file and returns 
- * the formatted student statistics as a string.
- * @param {string} path - The path to the CSV file.
- * @returns {Promise<string>}
- */
-function countStudents(path) {
-  return new Promise((resolve, reject) => {
-    fs.readFile(path, 'utf-8', (error, data) => {
-      if (error) {
-        reject(new Error('Cannot load the database'));
-        return;
-      }
-
-      const lines = data.split('\n').filter((line) => line.trim() !== '');
-      const header = lines.shift();
-      if (!header) {
-        resolve('Number of students: 0');
-        return;
-      }
-
-      const fields = {};
-      let totalStudents = 0;
-
-      for (const line of lines) {
-        const studentData = line.split(',');
-        if (studentData.length >= 4) {
-          const firstName = studentData[0].trim();
-          const field = studentData[3].trim();
-
-          if (!fields[field]) {
-            fields[field] = [];
-          }
-          fields[field].push(firstName);
-          totalStudents += 1;
-        }
-      }
-
-      let output = `Number of students: ${totalStudents}`;
-      const sortedFields = Object.keys(fields);
-      for (const field of sortedFields) {
-        output += `\nNumber of students in ${field}: ${fields[field].length}. List: ${fields[field].join(', ')}`;
-      }
-
-      resolve(output);
-    });
-  });
-}
-
-// Route for the root path
-app.get('/', (req, res) => {
-  res.set('Content-Type', 'text/plain');
+app.get('/', (_req, res) => {
   res.send('Hello Holberton School!');
 });
 
-// Route for the students path
-app.get('/students', (req, res) => {
-  res.set('Content-Type', 'text/plain');
-  
-  countStudents(DB_FILE)
+app.get('/students', async (_req, res) => {
+  res.write('This is the list of our students\n');
+  await countStudents(process.argv[2])
     .then((data) => {
-      res.send(`This is the list of our students\n${data}`);
+      const fields = Object.keys(data);
+      const total = fields.reduce(
+        (acc, curr) => acc + data[curr].numStudents,
+        0,
+      );
+      res.write(`Number of students: ${total}\n`);
+      for (let i = 0; i < fields.length; i += 1) {
+        res.write(
+          `Number of students in ${fields[i]}: ${
+            data[fields[i]].numStudents
+          }. `,
+        );
+        res.write(`List: ${data[fields[i]].names.join(', ')}`);
+        if (i < fields.length - 1) {
+          res.write('\n');
+        }
+      }
     })
     .catch((err) => {
-      res.send(`This is the list of our students\n${err.message}`);
+      res.write(err.message);
+    })
+    .finally(() => {
+      res.end();
     });
 });
-
-// Start listening on the specified port
-app.listen(PORT);
+app.listen(port);
 
 module.exports = app;
